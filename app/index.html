@@ -1,38 +1,144 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Great Books</title>
-    <meta charset="utf-8" />
-    <link href="kendo/styles/kendo.mobile.all.min.css" rel="stylesheet" />
-    <link href="css/main.css" rel="stylesheet" />
-
+    <title>Date axis</title>
+    <meta charset="utf-8">
+    <link href="Kendo/styles/kendo.mobile.all.min.css" rel="stylesheet">
     <script src="cordova.js"></script>
-    <script src="kendo/js/jquery.min.js"></script>
-    <script src="kendo/js/kendo.mobile.min.js"></script>
-
-    <script src="js/app.js"></script>
-    <script src="js/details.js"></script>
-    <script src="js/favorites.js"></script>
+    <script src="Kendo/js/jquery.min.js"></script>
+    <script src="Kendo/js/kendo.mobile.min.js"></script>
 </head>
 <body>
-    <div data-role="view" id="index">
-        <div data-role="header">
-            <div data-role="navbar">
-                <span data-role="view-title"></span>
-            </div>
+    <div id="po">
+        <div>
+            <div id="chart"></div>
+            <ul id="menu" style="width:100px">
+                <li>
+                    <img src="Kendo/styles/images/reply.png" />上钻
+                </li>
+                <li class="k-separator"></li>
+                <li>
+                    <img src="Kendo/styles/images/forward.png" />下钻
+                </li>
+            </ul>
         </div>
-        <ul data-role="listview" data-source="Books.data" data-template="books-template"></ul>
+        <script>
+				var wd=0,tmp=0;
+				var categorySelected;
+				var series;
+				var year,month,param="";
+				var guid = ["9F7AD8D2-5636-4B66-BEA6-054DE02B31BC", "11DED70B-4368-4506-AC7C-9ADBEF370F0B", "0DA9AB48-9A53-4B0D-B66D-F7995AC38CF7"];
+				
+				$(document).ready(function() {
+				    var datas=new kendo.data.DataSource({
+				        transport: {
+				            read: {
+				                url: "http://www.sih.cq.cn:8881/api/DATA/9F7AD8D2-5636-4B66-BEA6-054DE02B31BC"
+				            }
+				        },
+				        sort: {
+				            field: "ERSDA",
+				            dir: "asc"
+				        },
+				        group: {
+				            field: "LTXA1"
+				        }
+				    });
+				    datas.read();
+
+				 function createChart() {
+				    $("#chart").kendoChart({
+				        dataSource: datas,
+				        autoBind: false,
+				        series: [{
+				            type: "column",
+				            field: "CHARG",
+				            name: "#= group.value #",
+				            categoryField: "ERSDA",
+				            labels: {
+				                visible: true,
+				                template: "#= value #"
+				            }
+				        }],
+				        categoryAxis: {
+				            majorGridLines: {
+				                visible: true
+				            }
+				        },
+				        valueAxis: {
+				            line: {
+				                visible: true
+				            }
+				        },
+				        tooltip: {
+				            visible: true,
+				            template: "#= series.name #: #= value #"
+				        },
+				        seriesClick: function (e) {
+				            categorySelected = e.category;
+				            series = e.series.name;
+				        }
+				    });
+				};
+								    
+					$(function () {
+					    setInterval(show, 300000);
+					    function show() {
+					        var chart = $("#chart").data("kendoChart");
+					        datas.read();
+					        chart.refresh();
+					    }
+					});
+
+					var conmenu = $("#menu").kendoContextMenu({
+							orientation: "vertical",
+							target: "#chart",
+							animation: {
+								open: { effects: "fadeIn" },
+								duration: 500
+							},
+							select: function(e) {
+								var drill=$(e.item).children(".k-link").text();
+								var chart = $("#chart").data("kendoChart");
+								var url = "/api/DATA/";
+
+								if($.trim(drill) =="上钻")
+								{
+									switch(wd){
+										case 0:
+											wd=0;year="";param="";break;
+										case 1:
+											wd=0;month="";param="";break;
+										case 2:
+											wd=1;param=year;break;
+										default:
+											wd=0;
+									}
+								}
+								else{
+									switch(wd){
+										case 0:
+											wd=1;year=categorySelected;param=categorySelected;break;
+										case 1:
+											wd=2;month=categorySelected;param+=","+categorySelected;break;
+										case 2:
+											wd=2;break;
+										default:
+											wd=0;
+									}
+								};
+								var uid=guid[wd]
+								url=url.concat(uid,"?parameter=",param);
+								chart.dataSource.options.transport.read.url = url;
+								chart.dataSource.read();
+								this.close();
+							}
+					});
+					createChart();
+				});
+				
+        </script>
     </div>
-
-    <script type="text/x-kendo-template" id="books-template">
-        <a href="views/details.html?##id=#: isbn #">
-            <div class="bookImage"><img src="#: image_url #" /></div>
-            <div class="bookTitle">#: name #</div>
-            <div class="bookAuthor">#: author #</div>
-        </a>
-    </script>
-
-    <!-- Add Tutorial Markup Here -->
 
 </body>
 </html>
